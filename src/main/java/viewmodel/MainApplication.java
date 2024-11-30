@@ -10,59 +10,83 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+/**
+ * Main entry point for the Employee Data Management System application.
+ * This class initializes the application, sets up the primary stage,
+ * and transitions between scenes.
+ */
 public class MainApplication extends Application {
 
-    private static Scene scene;
-    private static DbConnectivityClass cnUtil;
+    private static Scene primaryScene;
+    private static DbConnectivityClass databaseUtil;
     private Stage primaryStage;
 
+    /**
+     * Main method to launch the application.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
-        cnUtil = new DbConnectivityClass();
+        databaseUtil = new DbConnectivityClass(); // Initialize database utility
         launch(args);
-
     }
 
+    /**
+     * Starts the JavaFX application and initializes the primary stage.
+     *
+     * @param primaryStage the primary stage for this application
+     */
+    @Override
     public void start(Stage primaryStage) {
-        Image icon = new Image(getClass().getResourceAsStream("/images/DollarClouddatabase.png"));
         this.primaryStage = primaryStage;
+
+        // Set application icon and title
+        Image appIcon = new Image(getClass().getResourceAsStream("/images/appIcon.png"));
+        this.primaryStage.getIcons().add(appIcon);
+        this.primaryStage.setTitle("Employee Manager Pro");
         this.primaryStage.setResizable(false);
-        primaryStage.getIcons().add(icon);
-        primaryStage.setTitle("FSC CSC311 _ Database Project");
-        showScene1();
+
+        loadSplashScreen(); // Load the splash screen
     }
 
-    private void showScene1() {
+    /**
+     * Loads the splash screen and initiates a transition to the login interface.
+     */
+    private void loadSplashScreen() {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/splashscreen.fxml"));
-            Scene scene = new Scene(root, 900, 600);
-            scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
-            primaryStage.setScene(scene);
+            Parent splashRoot = FXMLLoader.load(getClass().getResource("/view/splashscreen.fxml"));
+            Scene splashScene = new Scene(splashRoot, 600, 400);
+            splashScene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
+
+            primaryStage.setScene(splashScene);
             primaryStage.show();
-            changeScene();
+
+            transitionToLogin(); // Trigger a fade transition
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void changeScene() {
+    /**
+     * Fades out the splash screen and transitions to the login interface.
+     */
+    private void transitionToLogin() {
         try {
-            Parent newRoot = FXMLLoader.load(getClass().getResource("/view/login.fxml").toURI().toURL());
-            Scene currentScene = primaryStage.getScene();
-            Parent currentRoot = currentScene.getRoot();
-            currentScene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
-            FadeTransition fadeOut = new FadeTransition(Duration.seconds(3), currentRoot);
-            fadeOut.setFromValue(1);
-            fadeOut.setToValue(0);
-            fadeOut.setOnFinished(e -> {
-                Scene newScene = new Scene(newRoot, 900, 600);
-                primaryStage.setScene(newScene);
+            Parent loginRoot = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+            Scene loginScene = new Scene(loginRoot, 600, 400);
+            loginScene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
+
+            FadeTransition fadeOut = new FadeTransition(Duration.seconds(3), primaryScene.getRoot());
+            fadeOut.setFromValue(1.0);
+            fadeOut.setToValue(0.0);
+            fadeOut.setOnFinished(event -> {
+                primaryStage.setScene(loginScene);
                 primaryStage.show();
             });
+
             fadeOut.play();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-
 }

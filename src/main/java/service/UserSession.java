@@ -1,66 +1,125 @@
 package service;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.prefs.Preferences;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * Singleton class that manages user session data, including username and role.
+ * Provides functionality to save, retrieve, and clear session credentials.
+ */
 public class UserSession {
 
-    private static UserSession instance;
+    private static volatile UserSession instance;
+    private static final ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    private String userName;
+    private final Preferences preferences;
+    private final String username;
+    private final String role;
 
-    private String password;
-    private String privileges;
-
-    private UserSession(String userName, String password, String privileges) {
-        this.userName = userName;
-        this.password = password;
-        this.privileges = privileges;
-        Preferences userPreferences = Preferences.userRoot();
-        userPreferences.put("USERNAME",userName);
-        userPreferences.put("PASSWORD",password);
-        userPreferences.put("PRIVILEGES",privileges);
+    /**
+     * Private constructor to initialize a user session.
+     *
+     * @param username the username of the logged-in user
+     * @param role     the role of the logged-in user
+     */
+    private UserSession(String username, String role) {
+        this.username = username;
+        this.role = role;
+        this.preferences = Preferences.userRoot().node(this.getClass().getName());
     }
 
-
-
-    public static UserSession getInstace(String userName,String password, String privileges) {
-        if(instance == null) {
-            instance = new UserSession(userName, password, privileges);
+    /**
+     * Retrieves the singleton instance of the UserSession. Creates a new instance if none exists.
+     *
+     * @param username the username of the user
+     * @param role     the role of the user
+     * @return the singleton instance of UserSession
+     */
+    public static UserSession getInstance(String username, String role) {
+        UserSession localInstance = instance;
+        if (localInstance == null) {
+            lock.writeLock().lock();
+            try {
+                localInstance = instance;
+                if (localInstance == null) {
+                    instance = new UserSession(username, role);
+                }
+            } finally {
+                lock.writeLock().unlock();
+            }
         }
         return instance;
     }
 
-    public static UserSession getInstace(String userName,String password) {
-        if(instance == null) {
-            instance = new UserSession(userName, password, "NONE");
-        }
-        return instance;
-    }
-    public String getUserName() {
-        return this.userName;
+    /**
+     * Saves the user's credentials in the preferences store.
+     *
+     * @param username the username to save
+     * @param password the password to save
+     */
+    public void saveCredentials(String username, String password) {
+        preferences.put("username", username);
+        preferences.put("password", password);
     }
 
+    /**
+     * Retrieves the username from the preferences store.
+     *
+     * @return the saved username or null if none exists
+     */
+    public String getUsername() {
+        return preferences.get("username", null);
+    }
+
+    /**
+     * Retrieves the password from the preferences store.
+     *
+     * @return the saved password or null if none exists
+     */
     public String getPassword() {
-        return this.password;
+        return preferences.get("password", null);
     }
 
-    public String getPrivileges() {
-        return this.privileges;
+    /**
+     * Clears the stored credentials from the preferences store.
+     */
+    public void clearCredentials() {
+        preferences.remove("username");
+        preferences.remove("password");
     }
 
-    public void cleanUserSession() {
-        this.userName = "";// or null
-        this.password = "";
-        this.privileges = "";// or null
+    /**
+     * Retrieves the role associated with this session.
+     *
+     * @return the role of the user
+     */
+    public String getRole() {
+        return role;
     }
 
+    /**
+     * Clears the current user session and resets the instance.
+     */
+    public static void cleanUserSession() {
+        lock.writeLock().lock();
+        try {
+            if (instance != null) {
+                instance.clearCredentials();
+                instance = null;
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Returns a string representation of the UserSession.
+     *
+     * @return a formatted string containing session details
+     */
     @Override
     public String toString() {
-        return "UserSession{" +
-                "userName='" + this.userName + '\'' +
-                ", privileges=" + this.privileges +
-                '}';
+        return "UserSession {username='" + username + "', role='" + role + "'}";
     }
 }
